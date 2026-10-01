@@ -11,7 +11,7 @@ This directory contains a **staged backend patch only**. It is not automatically
 
 Security contract:
 - Never allow `*` as an origin.
-- Verify `event.source === window.parent` and exact allowed `event.origin`.
+- Verify exact configured `event.origin` and require message source `psb-fm-pwa`. Apps Script HTML Service may wrap the Bridge in provider-owned browsing contexts, so the staged Bridge sends responses through `window.top` while retaining an exact PWA `targetOrigin` (never `*`).
 - Require message source `psb-fm-pwa`.
 - Dispatch only the explicit backend allowlist.
 - Existing backend functions remain authoritative for session and role authorization.
