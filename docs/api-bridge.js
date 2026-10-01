@@ -42,7 +42,8 @@
     if (!iframe || event.source !== iframe.contentWindow) return;
     let apiOrigin = '';
     try { apiOrigin = new URL(API_URL).origin; } catch (e) {}
-    if (!apiOrigin || event.origin !== apiOrigin) return;
+    const trustedOrigins = new Set([apiOrigin, 'https://script.googleusercontent.com']);
+    if (!apiOrigin || !trustedOrigins.has(event.origin)) return;
 
     const data = event.data || {};
     if (data.source !== BRIDGE_SOURCE) return;
@@ -101,7 +102,7 @@
     const target = iframe.contentWindow;
     const id = 'pwa_' + Date.now().toString(36) + '_' + (++requestSeq).toString(36);
     const timeoutMs = Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS;
-    const targetOrigin = new URL(API_URL).origin;
+    const targetOrigin = 'https://script.google.com';
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
