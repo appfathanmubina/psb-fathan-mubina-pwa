@@ -1,0 +1,6 @@
+/* STAGE 32.2 — optional explicit bridge origin configuration.
+ * Add this row to ensureDefaultConfig_() defaults:
+ */
+['PWA_ALLOWED_ORIGINS','https://appfathanmubina.github.io','Origin GitHub Pages yang diizinkan untuk API Bridge PWA',now],
+
+/* The bridge also has the same safe default when this CONFIG key is empty. */
