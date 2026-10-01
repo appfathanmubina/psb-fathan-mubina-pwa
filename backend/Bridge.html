@@ -12,22 +12,53 @@
   <script>
   (() => {
     'use strict';
+
     const BRIDGE_SOURCE = 'psb-fm-api-bridge';
     const BRIDGE_VERSION = '32.2.0';
+    const PWA_SOURCE = 'psb-fm-pwa';
+
     let allowedOrigins = [];
     let ready = false;
 
-    const post = (targetOrigin, payload) => {
-      try { window.parent.postMessage(Object.assign({source: BRIDGE_SOURCE}, payload), targetOrigin); } catch (e) {}
+    /*
+     * Apps Script HTML Service may add one or more same-provider wrapper
+     * browsing contexts around Bridge.html. In that case window.parent can
+     * have a googleusercontent.com origin even though the real PWA is the
+     * top-level browsing context.
+     *
+     * postToPwa() deliberately targets window.top, while the targetOrigin
+     * remains an exact configured PWA origin. No wildcard is ever used.
+     */
+    const topWindow = () => {
+      try { return window.top || window.parent; } catch (e) { return window.parent; }
     };
+
+    const postToPwa = (targetOrigin, payload) => {
+      const origin = String(targetOrigin || '').trim();
+      if (!origin || origin === '*') return false;
+
+      try {
+        topWindow().postMessage(
+          Object.assign({source: BRIDGE_SOURCE}, payload),
+          origin
+        );
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
     const originAllowed = (origin) => allowedOrigins.some((item) => {
       const value = String(item || '').trim();
       return value && value !== '*' && value === origin;
     });
+
     const announceReady = () => {
       if (ready || !allowedOrigins.length) return;
       ready = true;
-      allowedOrigins.forEach((origin) => post(origin, {type:'ready', bridgeVersion:BRIDGE_VERSION}));
+      allowedOrigins.forEach((origin) => {
+        postToPwa(origin, {type:'ready', bridgeVersion:BRIDGE_VERSION});
+      });
     };
 
     google.script.run
@@ -37,14 +68,22 @@
           : [];
         announceReady();
       })
-      .withFailureHandler(() => { allowedOrigins = []; })
+      .withFailureHandler(() => {
+        allowedOrigins = [];
+      })
       .getPwaBridgeConfig();
 
     window.addEventListener('message', (event) => {
-      if (event.source !== window.parent) return;
+      /*
+       * Do not require event.source === window.parent here. Apps Script's
+       * wrapper can relay the PWA message through a provider-owned browsing
+       * context. The security boundary remains the exact event.origin plus
+       * the required PWA message source.
+       */
       if (!originAllowed(event.origin)) return;
+
       const data = event.data || {};
-      if (data.source !== 'psb-fm-pwa' || data.type !== 'request') return;
+      if (data.source !== PWA_SOURCE || data.type !== 'request') return;
 
       const id = String(data.id || '').trim();
       const fn = String(data.fn || '').trim();
@@ -52,16 +91,41 @@
       if (!id || !fn) return;
 
       if (!ready) {
-        post(event.origin, {type:'response',id,ok:false,error:{code:'BRIDGE_NOT_READY',message:'API bridge belum siap.'}});
+        postToPwa(event.origin, {
+          type:'response',
+          id,
+          ok:false,
+          error:{
+            code:'BRIDGE_NOT_READY',
+            message:'API bridge belum siap.'
+          }
+        });
         return;
       }
 
       google.script.run
-        .withSuccessHandler((result) => post(event.origin, {type:'response',id,ok:true,result}))
-        .withFailureHandler((err) => post(event.origin, {
-          type:'response',id,ok:false,
-          error:{code:'RPC_ERROR',message:String(err && err.message || 'Terjadi kesalahan komunikasi dengan backend.')}
-        }))
+        .withSuccessHandler((result) => {
+          postToPwa(event.origin, {
+            type:'response',
+            id,
+            ok:true,
+            result
+          });
+        })
+        .withFailureHandler((err) => {
+          postToPwa(event.origin, {
+            type:'response',
+            id,
+            ok:false,
+            error:{
+              code:'RPC_ERROR',
+              message:String(
+                err && err.message ||
+                'Terjadi kesalahan komunikasi dengan backend.'
+              )
+            }
+          });
+        })
         .pwaBridgeCall(fn, args);
     });
   })();
