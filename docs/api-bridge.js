@@ -9,6 +9,7 @@
   const DEFAULT_TIMEOUT_MS = Number(config.bridge?.defaultTimeoutMs) || 20000;
 
   let iframe = null;
+  let bridgeContentOrigin = '';
   let readyPromise = null;
   let requestSeq = 0;
   const pending = new Map();
@@ -49,6 +50,7 @@
     if (data.source !== BRIDGE_SOURCE) return;
 
     if (data.type === 'ready') {
+      bridgeContentOrigin = event.origin;
       window.dispatchEvent(new CustomEvent('psb-bridge-ready', {detail: data}));
       return;
     }
@@ -102,7 +104,7 @@
     const target = iframe.contentWindow;
     const id = 'pwa_' + Date.now().toString(36) + '_' + (++requestSeq).toString(36);
     const timeoutMs = Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS;
-    const targetOrigin = 'https://script.google.com';
+    const targetOrigin = bridgeContentOrigin || new URL(API_URL).origin;
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -117,6 +119,7 @@
   function reset() {
     if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
     iframe = null;
+    bridgeContentOrigin = '';
     readyPromise = null;
     rejectAll(Object.assign(new Error('API Bridge di-reset.'), {code: 'BRIDGE_RESET'}));
   }
