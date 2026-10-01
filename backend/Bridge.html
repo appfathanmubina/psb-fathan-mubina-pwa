@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>PSB Fathan Mubina — API Bridge</title>
+  <style>html,body{margin:0;width:100%;height:100%;background:transparent}#status{position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden}</style>
+</head>
+<body>
+  <div id="status" aria-hidden="true">PSB API Bridge</div>
+  <script>
+  (() => {
+    'use strict';
+    const BRIDGE_SOURCE = 'psb-fm-api-bridge';
+    const BRIDGE_VERSION = '32.2.0';
+    let allowedOrigins = [];
+    let ready = false;
+
+    const post = (targetOrigin, payload) => {
+      try { window.parent.postMessage(Object.assign({source: BRIDGE_SOURCE}, payload), targetOrigin); } catch (e) {}
+    };
+    const originAllowed = (origin) => allowedOrigins.some((item) => {
+      const value = String(item || '').trim();
+      return value && value !== '*' && value === origin;
+    });
+    const announceReady = () => {
+      if (ready || !allowedOrigins.length) return;
+      ready = true;
+      allowedOrigins.forEach((origin) => post(origin, {type:'ready', bridgeVersion:BRIDGE_VERSION}));
+    };
+
+    google.script.run
+      .withSuccessHandler((cfg) => {
+        allowedOrigins = Array.isArray(cfg && cfg.allowedOrigins)
+          ? cfg.allowedOrigins.map(String).map((x) => x.trim()).filter(Boolean)
+          : [];
+        announceReady();
+      })
+      .withFailureHandler(() => { allowedOrigins = []; })
+      .getPwaBridgeConfig();
+
+    window.addEventListener('message', (event) => {
+      if (event.source !== window.parent) return;
+      if (!originAllowed(event.origin)) return;
+      const data = event.data || {};
+      if (data.source !== 'psb-fm-pwa' || data.type !== 'request') return;
+
+      const id = String(data.id || '').trim();
+      const fn = String(data.fn || '').trim();
+      const args = Array.isArray(data.args) ? data.args : [];
+      if (!id || !fn) return;
+
+      if (!ready) {
+        post(event.origin, {type:'response',id,ok:false,error:{code:'BRIDGE_NOT_READY',message:'API bridge belum siap.'}});
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler((result) => post(event.origin, {type:'response',id,ok:true,result}))
+        .withFailureHandler((err) => post(event.origin, {
+          type:'response',id,ok:false,
+          error:{code:'RPC_ERROR',message:String(err && err.message || 'Terjadi kesalahan komunikasi dengan backend.')}
+        }))
+        .pwaBridgeCall(fn, args);
+    });
+  })();
+  </script>
+</body>
+</html>
