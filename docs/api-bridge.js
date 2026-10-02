@@ -55,12 +55,49 @@
      * Accept only these two exact source/origin combinations; never use '*'.
      */
     const pwaOrigin = window.location.origin;
-    const fromIframe = event.source === iframe.contentWindow &&
-      (event.origin === apiOrigin || event.origin === 'https://script.googleusercontent.com');
+    const trustedBridgeOrigins = new Set([
+      apiOrigin,
+      'https://script.googleusercontent.com'
+    ]);
+
+    /*
+     * Apps Script can nest Bridge.html inside one or more provider-owned
+     * browsing contexts. The message source can therefore be a descendant
+     * WindowProxy of iframe.contentWindow rather than iframe.contentWindow
+     * itself. Walk the iframe's child browsing contexts and accept only a
+     * source belonging to that bridge frame tree.
+     */
+    function isBridgeFrameSource(source) {
+      if (!source || !iframe) return false;
+      const root = iframe.contentWindow;
+      if (source === root) return true;
+
+      const queue = [{win: root, depth: 0}];
+      const seen = new Set();
+      while (queue.length) {
+        const item = queue.shift();
+        if (!item.win || seen.has(item.win) || item.depth >= 5) continue;
+        seen.add(item.win);
+
+        let length = 0;
+        try { length = Number(item.win.frames.length) || 0; } catch (e) {}
+        for (let i = 0; i < length; i += 1) {
+          let child = null;
+          try { child = item.win.frames[i]; } catch (e) {}
+          if (!child) continue;
+          if (source === child) return true;
+          queue.push({win: child, depth: item.depth + 1});
+        }
+      }
+      return false;
+    }
+
+    const fromBridgeFrame = trustedBridgeOrigins.has(event.origin) &&
+      isBridgeFrameSource(event.source);
     const fromTopRelay = event.source === window &&
       event.origin === pwaOrigin;
 
-    if (!fromIframe && !fromTopRelay) return;
+    if (!fromBridgeFrame && !fromTopRelay) return;
     if (!apiOrigin) return;
 
     const data = event.data || {};
