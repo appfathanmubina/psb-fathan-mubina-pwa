@@ -40,11 +40,28 @@
   }
 
   window.addEventListener('message', (event) => {
-    if (!iframe || event.source !== iframe.contentWindow) return;
+    if (!iframe) return;
+
     let apiOrigin = '';
     try { apiOrigin = new URL(API_URL).origin; } catch (e) {}
-    const trustedOrigins = new Set([apiOrigin, 'https://script.googleusercontent.com']);
-    if (!apiOrigin || !trustedOrigins.has(event.origin)) return;
+
+    /*
+     * Apps Script HTML Service may wrap Bridge.html in a provider-owned
+     * browsing context. The wrapper-safe Bridge implementation posts ready
+     * and responses through window.top, which means the message can arrive
+     * with event.source === window and event.origin === the PWA origin.
+     *
+     * Normal bridge messages still arrive from iframe.contentWindow.
+     * Accept only these two exact source/origin combinations; never use '*'.
+     */
+    const pwaOrigin = window.location.origin;
+    const fromIframe = event.source === iframe.contentWindow &&
+      (event.origin === apiOrigin || event.origin === 'https://script.googleusercontent.com');
+    const fromTopRelay = event.source === window &&
+      event.origin === pwaOrigin;
+
+    if (!fromIframe && !fromTopRelay) return;
+    if (!apiOrigin) return;
 
     const data = event.data || {};
     if (data.source !== BRIDGE_SOURCE) return;
