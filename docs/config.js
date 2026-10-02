@@ -3,7 +3,7 @@ window.PSB_PWA_CONFIG = Object.freeze({
   shortName: 'PSB FM',
   version: '32.2.2',
   stage: '32.2.2',
-  appsScriptWebAppUrl: 'https://script.google.com/macros/s/AKfycbxs1zVZdEFwbhHFVO5nGHHhEqHQDdjVOVjfnWc1Kc6mhD5t_n8VgrdUTKhAvg8JGiau/exec',
+  appsScriptWebAppUrl:'https://script.google.com/macros/s/AKfycbxs1zVZdEFwbhHFVO5nGHHhEqHQDdjVOVjfnWc1Kc6mhD5t_n8VgrdUTKhAvg8JGiau/exec'
   bridge: {
     mode: 'iframe-postmessage',
     endpointParam: 'bridge=1',
