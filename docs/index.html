@@ -1915,7 +1915,7 @@ function syncViewport(){
 window.addEventListener('resize',syncViewport,{passive:true});
 window.visualViewport?.addEventListener('resize',syncViewport,{passive:true});
 syncViewport();
-window.addEventListener('load',boot);
+
 
 function stopChatPolling(){if(state.chatPollTimer){clearInterval(state.chatPollTimer);state.chatPollTimer=null;}}
 function startChatPolling(){stopChatPolling();if(state.page!=='chat'||!state.token)return;const seconds=Math.max(5,Number(state.chatData?.pollSeconds||10));state.chatPollInFlight=false;state.chatPollTimer=setInterval(async()=>{if(state.page!=='chat'||document.hidden||state.chatPollInFlight)return;state.chatPollInFlight=true;try{const threadId=state.chatThread?.thread?.threadId||state.chatThread?.threadId;if(threadId&&$('chatConversation')){await loadChatThreadUI(threadId,true);}else{await loadChatDataUI(true);}}finally{state.chatPollInFlight=false;}},seconds*1000);}
