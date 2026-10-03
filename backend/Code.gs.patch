@@ -3,6 +3,8 @@
  * Staged backend patch. Do not deploy to production until integration QA.
  */
 const PSB_PWA_BRIDGE_VERSION = '32.3.5';
+// Public gallery folder configured for PSB Fathan Mubina.
+const PSB_PUBLIC_GALLERY_FOLDER_ID = '1DPb4HhDmfzrdxUy7rdU56U0xCARc7yGJ';
 
 const PSB_PWA_BRIDGE_ALLOWED_FUNCTIONS = Object.freeze([
   'getAppInfo','getPublicConfig','getPublicGallery',
