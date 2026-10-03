@@ -1757,9 +1757,6 @@ function getSelectionPageData(sessionToken, registrationId) {
     registrationId: x.registrationId || '',
     status: x.status || '',
     announcementDate: x.announcementDate || '',
-    note: x.note || '',
-    createdAt: x.createdAt || '',
-    updatedAt: x.updatedAt || ''
   } : null;
   const visibleScores = isWali ? [] : scores;
   const visibleResults = isWali
