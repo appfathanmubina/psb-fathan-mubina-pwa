@@ -2,7 +2,7 @@
 
 ## Tahap 6 — Lock Backend API Contract
 
-**Status:** LOCKED BASELINE  
+**Status:** VERIFICATION REVIEWED — 1 SECURITY BLOCKER FOUND  
 **Branch:** `stage-2-master-repository-lock`  
 **Backend source:** `apps-script/Code.gs`  
 **Bridge source:** `apps-script/Bridge.html`  
@@ -403,6 +403,16 @@ Until this contract is deliberately revised:
 **Database Contract dependency:** Tahap 5 — locked  
 **Bridge baseline:** Stage 32.x existing implementation  
 **Canonical source:** Apps Script baseline locked in Tahap 2–4
+
+## 14A. Tahap 6 — Verifikasi Aktual PWA ↔ Backend
+
+Verifikasi terhadap source aktual menemukan **76 fungsi unik** yang dipanggil PWA melalui `server(...)`, dengan total **101 call sites**. Seluruh 76 fungsi tersebut berada di allowlist 79 fungsi dan seluruh 79 fungsi allowlist memiliki definisi backend. Tiga fungsi allowlist yang tidak dipanggil PWA saat ini adalah `getAppInfo`, `getPaymentsForRegistration`, dan `getRegistrationDocuments`.
+
+**Security blocker:** `getSelectionPageData` masih mengembalikan `detail.scores` kepada caller Wali untuk participant yang dipilih. Ini bertentangan dengan aturan privasi Wali yang mengharuskan Wali tidak menerima nilai seleksi maupun komponen/perhitungan internal. Frontend hiding tidak cukup; response backend harus disanitasi.
+
+Matriks lengkap berada pada `docs/API_CALL_MATRIX.md`.
+
+**Status Tahap 6:** belum boleh dinyatakan LOCKED COMPLETE sampai blocker tersebut diperbaiki dan diverifikasi ulang.
 
 ### Known documentation discrepancy
 
