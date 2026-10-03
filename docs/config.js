@@ -1,9 +1,9 @@
 window.PSB_PWA_CONFIG = Object.freeze({
   appName: 'PSB Fathan Mubina',
   shortName: 'PSB FM',
-  version: '32.2.8',
-  stage: '32.2.8',
-  appsScriptWebAppUrl: 'https://script.google.com/macros/s/AKfycbwz_RMGgZPYTGA_J2tnMkjT_ucvhMfHCNb_j32E0LKAyDIx557VjP0hZEsD-qougUc/exec',
+  version: '32.2.9',
+  stage: '32.2.9',
+  appsScriptWebAppUrl: 'https://script.google.com/macros/s/AKfycbxm7C7ujrTRtdSR1hcm1ssX--H-nW3Yxiq9Kzs1Ag/dev',
   bridge: {
     mode: 'iframe-postmessage',
     endpointParam: 'bridge=1',
