@@ -1750,11 +1750,20 @@ function getSelectionPageData(sessionToken, registrationId) {
   const participantItems = participants.filter(p=>regMap[String(p.registrationId)] || !isWali).map(p=>Object.assign({},p,{registration:regMap[String(p.registrationId)]||null,candidateName:regMap[String(p.registrationId)]?.candidateName || candidateMap[findRegistration_(String(p.registrationId))?.registration?.candidateId]?.fullName || '-'}));
   // WALI hanya boleh menerima nilai/hasil milik pendaftarannya sendiri.
   // Jangan pernah mengirim seluruh SELECTION_SCORES/RESULTS ke browser Wali.
-  const visibleScores = isWali
-    ? scores.filter(x => participantItems.some(p => String(p.participantId) === String(x.participantId)))
-    : scores;
+  // WALI tidak menerima data nilai, peserta seleksi, atau hasil internal mentah.
+  // Hasil untuk WALI dibentuk ulang menjadi response publik terbatas.
+  const publicResult = x => x ? {
+    resultId: x.resultId || '',
+    registrationId: x.registrationId || '',
+    status: x.status || '',
+    announcementDate: x.announcementDate || '',
+    note: x.note || '',
+    createdAt: x.createdAt || '',
+    updatedAt: x.updatedAt || ''
+  } : null;
+  const visibleScores = isWali ? [] : scores;
   const visibleResults = isWali
-    ? results.filter(x => regMap[String(x.registrationId)])
+    ? results.filter(x => regMap[String(x.registrationId)]).map(publicResult)
     : results;
   const selectedId = String(registrationId||'');
   let detail = null;
@@ -1769,15 +1778,7 @@ function getSelectionPageData(sessionToken, registrationId) {
       const publicResult = results.find(x=>String(x.registrationId)===selectedId) || null;
       detail = {
         registration: enrichRegistrationList_([found.registration])[0],
-        result: publicResult ? {
-          resultId: publicResult.resultId || '',
-          registrationId: publicResult.registrationId || '',
-          status: publicResult.status || '',
-          announcementDate: publicResult.announcementDate || '',
-          note: publicResult.note || '',
-          createdAt: publicResult.createdAt || '',
-          updatedAt: publicResult.updatedAt || ''
-        } : null
+        result: publicResult(publicResult)
       };
     } else {
       detail = {
@@ -1788,7 +1789,7 @@ function getSelectionPageData(sessionToken, registrationId) {
       };
     }
   }
-  return {success:true,registrations,schedules,participants:participantItems,scores:visibleScores,results:visibleResults,detail};
+  return {success:true,registrations,schedules,participants:isWali ? [] : participantItems,scores:visibleScores,results:visibleResults,detail};
 }
 
 function createSelectionSchedule(sessionToken,payload){
