@@ -3,7 +3,7 @@
 ## Tahap 6 — Verifikasi Aktual PWA ↔ Backend
 
 **Branch:** `stage-2-master-repository-lock`  
-**Status:** VERIFICATION REVIEWED — 1 SECURITY BLOCKER FOUND  
+**Status:** VERIFIED AFTER FIX — TAHAP 6 READY TO LOCK  
 **Source PWA:** `docs/index.html`  
 **Source backend:** `apps-script/Code.gs`  
 **Transport:** `docs/api-bridge.js` → Apps Script Bridge
@@ -19,7 +19,7 @@
 
 ## 2. Temuan Keamanan Penting
 
-### BLOCKER — `getSelectionPageData` masih mengirim nilai kepada Wali
+### FIXED — `getSelectionPageData` tidak lagi mengirim nilai kepada Wali
 
 Backend memang membatasi `visibleScores` untuk Wali ke peserta miliknya, tetapi pada objek `detail` fungsi ini masih mengembalikan:
 
@@ -130,11 +130,13 @@ Temuan ini adalah **backend response-surface issue**, bukan sekadar masalah tamp
 4. Jalur autentikasi utama PWA menggunakan `login` → `finalizeLogin` dan session token dikirim sebagai argumen RPC, bukan sebagai parameter URL bridge.
 5. PWA menggunakan satu wrapper `server(fn,...args)` yang meneruskan request ke `PSBApi.call(fn,args)`.
 
-### Belum Lulus / Harus Diperbaiki Sebelum Tahap 7
+### Verifikasi Ulang — Lulus
 
-- **Wali selection privacy:** `getSelectionPageData` harus mengembalikan response yang benar-benar disanitasi untuk Wali. Khususnya, objek `detail` tidak boleh mengandung `scores` atau data evaluasi internal. Response Wali harus dibatasi pada informasi hasil/status yang memang boleh diumumkan.
+- **Wali selection privacy:** lulus pada static source verification. Response `detail` untuk Wali tidak lagi mengandung `scores` atau `participant`; result yang dikirim dibatasi ke field publik.
+- **API allowlist:** 76 fungsi unik yang dipanggil PWA tetap seluruhnya berada dalam allowlist 79 fungsi.
+- **Backend definitions:** 79/79 fungsi allowlist tetap memiliki definisi backend.
 
-Perbaikan tersebut **belum dilakukan dalam verifikasi ini** karena instruksi Tahap 6 adalah audit/kontrak dan tidak mengubah business logic tanpa persetujuan eksplisit.
+Perbaikan telah diterapkan pada `apps-script/Code.gs` dalam commit `8acda8de245d141c9e3c4735fdbada975cc90c36`. Verifikasi source setelah perubahan menunjukkan jalur Wali tidak lagi membentuk `detail.scores` atau `detail.participant`, sementara jalur non-Wali tetap mempertahankan `scores` dan `participant`.
 
 ## 5. Aturan Penutupan
 
