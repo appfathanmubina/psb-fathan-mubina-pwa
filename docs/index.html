@@ -676,54 +676,64 @@ async function initializeAfterLogin(){
     bootProgress(true,'Beranda siap. Data menu akan dilanjutkan saat dibuka.',true);
   }finally{state.preloadRunning=false;}
 }
+let bootStarted=false;
 async function boot(){
-  loading(true,'Memeriksa aplikasi...');
+  // Boot hanya boleh berjalan sekali. Sebelumnya boot dipasang pada
+  // DOMContentLoaded dan load sehingga dapat terpanggil dua kali.
+  if(bootStarted)return;
+  bootStarted=true;
+
+  // Render Beranda terlebih dahulu. Tampilan awal tidak boleh bergantung
+  // pada keberhasilan koneksi Apps Script.
+  loading(false);
+  renderPublicHome();
+
+  // Koneksi server dijalankan di background setelah UI sudah terlihat.
+  // Kegagalan server tidak lagi mengganti Beranda dengan pesan error.
   try{
-    // Jalankan pemeriksaan konfigurasi dan sesi secara paralel agar splash tidak
-    // menunggu dua request server secara berurutan.
-    if(state.token){
-      const [pub,r]=await Promise.all([
-        server('getPublicConfig',true),
-        server('validateSession',state.token)
-      ]);
-      state.config=pub?.config||{}; applyAppIcon();
+    const pub=await server('getPublicConfig',true);
+    if(pub?.success){
+      state.config=pub.config||{};
+      applyAppIcon();
       hydrateSplashLogo();
+
+      // Perbarui informasi tahun pada Beranda tanpa mengulang render penuh.
+      const brandSub=document.querySelector('.public-brand p');
+      if(brandSub && state.config.ACTIVE_YEAR){
+        brandSub.textContent='Pendaftaran Santri Baru · '+state.config.ACTIVE_YEAR;
+      }
+    }
+  }catch(e){
+    // Public Home tetap usable walaupun backend belum tersedia.
+    // Detail error tidak ditampilkan sebagai blocking notification.
+  }
+
+  // Session lama diverifikasi setelah Beranda tampil. Jika valid, baru masuk
+  // ke aplikasi. Jika invalid/timeout/error, pengguna tetap di Beranda.
+  if(state.token){
+    try{
+      const r=await server('validateSession',state.token);
       if(r?.success){
         state.user=r.user;
         renderApp();
         loading(false);
         initializeAfterLogin();
-      }else{
-        state.token='';
-        localStorage.removeItem('psb_session');
-        renderPublicHome('Sesi sebelumnya sudah berakhir. Silakan masuk kembali.');
+        return;
       }
-    }else{
-      const pub=await server('getPublicConfig',true);
-      state.config=pub?.config||{}; applyAppIcon();
-      hydrateSplashLogo();
-      renderPublicHome();
-    }
-  }catch(e){
-    // Startup/API error should not force visitors into the login screen.
-    // Keep the public landing page as the application's default entry point.
-    try{
-      if(!state.config || !Object.keys(state.config).length){
-        const pub=await server('getPublicConfig',true).catch(()=>null);
-        state.config=pub?.config||{};
-      }
-      applyAppIcon();
-      hydrateSplashLogo();
-      renderPublicHome('Aplikasi belum dapat terhubung ke server. Silakan coba lagi.');
-    }catch(fallbackError){
-      renderPublicHome('Beranda siap, tetapi data server belum dapat dimuat.');
+
+      state.token='';
+      localStorage.removeItem('psb_session');
+    }catch(e){
+      // Jangan memaksa logout hanya karena koneksi sementara gagal.
+      // Session tetap disimpan untuk dicoba lagi pada interaksi berikutnya.
     }
   }
+
   loading(false);
 }
 
-// Public Home is the default entry point. A valid saved session is restored
-// automatically by boot(); an expired/invalid session returns to Public Home.
+// Public Home adalah entry point. boot dijaga idempotent agar tidak pernah
+// dipanggil dua kali oleh lifecycle browser.
 if(document.readyState === 'loading'){
   document.addEventListener('DOMContentLoaded',boot,{once:true});
 }else{
