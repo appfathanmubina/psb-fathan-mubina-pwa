@@ -22,22 +22,50 @@
     if(!origin||origin==='*')return false;
     try{topWindow().postMessage(Object.assign({source:BRIDGE_SOURCE},payload),origin);return true}catch(e){return false}
   };
-  const originAllowed=origin=>allowedOrigins.some(item=>{const v=String(item||'').trim();return v&&v!=='*'&&v===origin});
+  const normalizeOrigin = value => {
+    try {
+      const u = new URL(String(value || '').trim());
+      if (u.protocol !== 'https:' || u.username || u.password || u.pathname !== '/' || u.search || u.hash) return '';
+      return u.origin;
+    } catch (e) {
+      return '';
+    }
+  };
+  const originAllowed=origin=>{
+    const candidate=normalizeOrigin(origin);
+    return !!candidate && allowedOrigins.includes(candidate);
+  };
   const announceReady=()=>{
     if(ready||!allowedOrigins.length)return;
     ready=true;
     allowedOrigins.forEach(origin=>postToPwa(origin,{type:'ready',bridgeVersion:BRIDGE_VERSION}));
   };
   google.script.run.withSuccessHandler(cfg=>{
-    allowedOrigins=Array.isArray(cfg&&cfg.allowedOrigins)?cfg.allowedOrigins.map(String).map(x=>x.trim()).filter(Boolean):[];
+    allowedOrigins=Array.isArray(cfg&&cfg.allowedOrigins)
+      ? [...new Set(cfg.allowedOrigins.map(normalizeOrigin).filter(Boolean))]
+      : [];
     announceReady();
   }).withFailureHandler(()=>{allowedOrigins=[]}).getPwaBridgeConfig();
   window.addEventListener('message',event=>{
     if(!originAllowed(event.origin))return;
     const data=event.data||{};
     if(data.source!==PWA_SOURCE||data.type!=='request')return;
-    const id=String(data.id||'').trim(),fn=String(data.fn||'').trim(),args=Array.isArray(data.args)?data.args:[];
-    if(!id||!fn)return;
+
+    // Request harus benar-benar berasal dari halaman induk PWA yang
+    // meng-embed bridge ini. Origin saja tidak cukup untuk mengikat
+    // pengirim ke frame yang sah.
+    const parentWindow=topWindow();
+    if(event.source!==parentWindow)return;
+
+    const id=String(data.id||'').trim();
+    const fn=String(data.fn||'').trim();
+    const args=Array.isArray(data.args)?data.args:[];
+    if(!/^pwa_[a-z0-9]+_[a-z0-9]+$/i.test(id) || id.length>100)return;
+    if(!/^[A-Za-z_$][A-Za-z0-9_$]{0,99}$/.test(fn))return;
+    if(args.length>50){
+      postToPwa(event.origin,{type:'response',id,ok:false,error:{code:'BRIDGE_ARGS_LIMIT','message':'Jumlah argumen API melebihi batas.'}});
+      return;
+    }
     if(!ready){
       postToPwa(event.origin,{type:'response',id,ok:false,error:{code:'BRIDGE_NOT_READY',message:'API bridge belum siap.'}});
       return;
