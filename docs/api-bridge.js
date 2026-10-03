@@ -89,9 +89,10 @@
      * emits these messages after getPwaBridgeConfig() succeeds.
      */
     const fromBridgeOrigin = isTrustedBridgeOrigin(event.origin);
+    const fromPwaFrame = iframe && event.source === iframe.contentWindow && event.origin === pwaOrigin;
     const fromPwaTop = event.source === window && event.origin === pwaOrigin;
 
-    if (!fromBridgeOrigin && !fromPwaTop) return;
+    if (!fromBridgeOrigin && !fromPwaFrame && !fromPwaTop) return;
     if (!apiOrigin) return;
 
     const data = event.data || {};
