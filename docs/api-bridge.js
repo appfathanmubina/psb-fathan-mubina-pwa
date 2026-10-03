@@ -55,55 +55,48 @@
      * Accept only these two exact source/origin combinations; never use '*'.
      */
     const pwaOrigin = window.location.origin;
-    const trustedBridgeOrigins = new Set([
-      apiOrigin,
-      'https://script.googleusercontent.com'
-    ]);
 
     /*
-     * Apps Script can nest Bridge.html inside one or more provider-owned
-     * browsing contexts. The message source can therefore be a descendant
-     * WindowProxy of iframe.contentWindow rather than iframe.contentWindow
-     * itself. Walk the iframe's child browsing contexts and accept only a
-     * source belonging to that bridge frame tree.
+     * Apps Script may rewrite the Bridge deployment onto a dynamic
+     * *.script.googleusercontent.com origin. The exact deployment origin
+     * (apiOrigin) is trusted, and the provider host is accepted only when
+     * it is exactly a script.googleusercontent.com subdomain.
+     *
+     * Do not use includes('googleusercontent.com') and never use '*'.
      */
-    function isBridgeFrameSource(source) {
-      if (!source || !iframe) return false;
-      const root = iframe.contentWindow;
-      if (source === root) return true;
+    function isTrustedBridgeOrigin(origin) {
+      if (!origin) return false;
+      if (origin === apiOrigin) return true;
 
-      const queue = [{win: root, depth: 0}];
-      const seen = new Set();
-      while (queue.length) {
-        const item = queue.shift();
-        if (!item.win || seen.has(item.win) || item.depth >= 5) continue;
-        seen.add(item.win);
-
-        let length = 0;
-        try { length = Number(item.win.frames.length) || 0; } catch (e) {}
-        for (let i = 0; i < length; i += 1) {
-          let child = null;
-          try { child = item.win.frames[i]; } catch (e) {}
-          if (!child) continue;
-          if (source === child) return true;
-          queue.push({win: child, depth: item.depth + 1});
-        }
+      try {
+        const url = new URL(origin);
+        return url.protocol === 'https:' &&
+          url.hostname.endsWith('.script.googleusercontent.com');
+      } catch (e) {
+        return false;
       }
-      return false;
     }
 
-    const fromBridgeFrame = trustedBridgeOrigins.has(event.origin) &&
-      isBridgeFrameSource(event.source);
-    const fromTopRelay = event.source === window &&
-      event.origin === pwaOrigin;
+    /*
+     * In Apps Script HTML Service, event.source is not stable enough to
+     * identify the original Bridge iframe: the runtime may expose a
+     * provider-owned WindowProxy instead of iframe.contentWindow.
+     *
+     * Therefore trust is established by the exact/validated Bridge origin
+     * plus the bridge-specific payload source. The bridge itself only
+     * emits these messages after getPwaBridgeConfig() succeeds.
+     */
+    const fromBridgeOrigin = isTrustedBridgeOrigin(event.origin);
+    const fromPwaTop = event.source === window && event.origin === pwaOrigin;
 
-    if (!fromBridgeFrame && !fromTopRelay) return;
+    if (!fromBridgeOrigin && !fromPwaTop) return;
     if (!apiOrigin) return;
 
     const data = event.data || {};
     if (data.source !== BRIDGE_SOURCE) return;
 
     if (data.type === 'ready') {
+      if (!fromBridgeOrigin) return;
       bridgeContentOrigin = event.origin;
       window.dispatchEvent(new CustomEvent('psb-bridge-ready', {detail: data}));
       return;
