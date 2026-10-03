@@ -2,38 +2,46 @@
   'use strict';
 
   const config = window.PSB_PWA_CONFIG || {};
-  const $ = (selector) => document.querySelector(selector);
-
-  function setStatus(message, kind = 'info') {
-    const el = $('#app-status');
-    if (!el) return;
-    el.textContent = message;
-    el.dataset.kind = kind;
-  }
-
-  async function checkBridge() {
-    try {
-      const result = await window.PSBApi.ready(12000);
-      setStatus('API Bridge aktif · v' + result.bridgeVersion, 'success');
-    } catch (error) {
-      setStatus('API Bridge belum terhubung. Backend bridge masih pada tahap integrasi.', 'info');
-    }
-  }
+  const root = document.getElementById('pwaRoot');
+  const frame = document.getElementById('appFrame');
+  const bootText = document.getElementById('bootText');
+  const bootError = document.getElementById('bootError');
+  const openApp = document.getElementById('openApp');
+  const bootLogo = document.getElementById('bootLogo');
 
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.register('./service-worker.js', {scope: './'}).catch(() => {});
   }
 
+  function getAppUrl() {
+    return String(config.appsScriptWebAppUrl || '').trim();
+  }
+
   function boot() {
-    const title = $('#app-name');
-    if (title) title.textContent = config.appName || 'PSB Fathan Mubina';
-    const version = $('#app-version');
-    if (version) version.textContent = 'API Bridge ' + (config.version || '32.2.0');
-    const logo = $('#app-logo');
-    if (logo && config.brand?.logoUrl) logo.src = config.brand.logoUrl;
+    const appUrl = getAppUrl();
     registerServiceWorker();
-    checkBridge();
+
+    if (!appUrl) {
+      if (bootText) bootText.textContent = 'URL aplikasi PSB belum dikonfigurasi.';
+      if (bootError) bootError.style.display = 'block';
+      return;
+    }
+
+    if (bootLogo && config.brand?.logoUrl) bootLogo.src = config.brand.logoUrl;
+    if (openApp) openApp.href = appUrl;
+    if (bootText) bootText.textContent = 'Menghubungkan ke aplikasi PSB...';
+
+    frame.addEventListener('load', () => {
+      root.classList.add('loaded');
+    }, {once: true});
+
+    frame.addEventListener('error', () => {
+      root.classList.add('error');
+      if (bootText) bootText.textContent = 'Aplikasi PSB tidak dapat dimuat di dalam PWA.';
+    }, {once: true});
+
+    frame.src = appUrl;
   }
 
   if (document.readyState === 'loading') {
