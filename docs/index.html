@@ -697,9 +697,29 @@ async function boot(){
       renderPublicHome();
     }
   }catch(e){
-    renderLogin('Aplikasi belum siap. Jalankan setupPSBDatabase() terlebih dahulu.');
+    // Startup/API error should not force visitors into the login screen.
+    // Keep the public landing page as the application's default entry point.
+    try{
+      if(!state.config || !Object.keys(state.config).length){
+        const pub=await server('getPublicConfig',true).catch(()=>null);
+        state.config=pub?.config||{};
+      }
+      applyAppIcon();
+      hydrateSplashLogo();
+      renderPublicHome('Aplikasi belum dapat terhubung ke server. Silakan coba lagi.');
+    }catch(fallbackError){
+      renderPublicHome('Beranda siap, tetapi data server belum dapat dimuat.');
+    }
   }
   loading(false);
+}
+
+// Public Home is the default entry point. A valid saved session is restored
+// automatically by boot(); an expired/invalid session returns to Public Home.
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded',boot,{once:true});
+}else{
+  boot();
 }
 function renderPublicHome(message=''){
   const year=esc(state.config.ACTIVE_YEAR||'2027/2028');
