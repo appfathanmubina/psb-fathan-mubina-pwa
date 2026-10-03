@@ -1,4 +1,4 @@
-# Stage 32.2 — API Bridge
+# Tahap 7 — API Bridge Hardening
 
 ## Purpose
 
@@ -27,6 +27,12 @@ diagnostics.
 
 The backend remains responsible for authentication, session validation,
 authorization, data isolation, mutations, Drive operations, and audit rules.
+
+## Tahap 7 hardening status
+
+Current bridge hardening includes exact configured HTTPS origin validation, parent-window binding, request ID/function-name validation, argument-count guard, request correlation, timeout/reset handling, and backend function allowlist enforcement.
+
+See `docs/TAHAP_7_API_BRIDGE_HARDENING.md` for the locked hardening contract.
 
 ## Production safety
 
