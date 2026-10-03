@@ -1763,7 +1763,30 @@ function getSelectionPageData(sessionToken, registrationId) {
     if(!found) return fail_('Pendaftaran tidak ditemukan.');
     if(!canAccessRegistration_(actor,found.registration) && !hasRoleDirect_(actor,PSB_SELECTION_ADMIN_ROLES)) return fail_('Anda tidak memiliki akses ke proses seleksi ini.');
     const participant = participants.find(x=>String(x.registrationId)===selectedId) || null;
-    detail = {registration:enrichRegistrationList_([found.registration])[0],participant,scores:participant? scores.filter(x=>String(x.participantId)===String(participant.participantId)):[],result:results.find(x=>String(x.registrationId)===selectedId)||null};
+    // WALI hanya menerima informasi hasil/status yang boleh diumumkan.
+    // Jangan kirim scores, participant, atau catatan evaluasi pada detail WALI.
+    if (isWali) {
+      const publicResult = results.find(x=>String(x.registrationId)===selectedId) || null;
+      detail = {
+        registration: enrichRegistrationList_([found.registration])[0],
+        result: publicResult ? {
+          resultId: publicResult.resultId || '',
+          registrationId: publicResult.registrationId || '',
+          status: publicResult.status || '',
+          announcementDate: publicResult.announcementDate || '',
+          note: publicResult.note || '',
+          createdAt: publicResult.createdAt || '',
+          updatedAt: publicResult.updatedAt || ''
+        } : null
+      };
+    } else {
+      detail = {
+        registration: enrichRegistrationList_([found.registration])[0],
+        participant,
+        scores: participant ? scores.filter(x=>String(x.participantId)===String(participant.participantId)) : [],
+        result: results.find(x=>String(x.registrationId)===selectedId) || null
+      };
+    }
   }
   return {success:true,registrations,schedules,participants:participantItems,scores:visibleScores,results:visibleResults,detail};
 }
