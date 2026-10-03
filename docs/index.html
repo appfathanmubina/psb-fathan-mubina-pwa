@@ -7,24 +7,44 @@
   <meta name="description" content="Progressive Web App PSB Fathan Mubina">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" href="./assets/icons/icon-192.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css">
   <title>PSB Fathan Mubina</title>
+  <style>
+    :root{color-scheme:light}
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;min-height:100%;overflow:hidden;background:#f7f7fa}
+    body{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .pwa-root{position:fixed;inset:0;width:100%;height:100%;background:#f7f7fa}
+    .app-frame{display:block;width:100%;height:100%;border:0;background:#f7f7fa}
+    .boot{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:24px;background:#f7f7fa}
+    .boot-card{width:min(92vw,380px);padding:28px 22px;text-align:center;background:#fff;border:1px solid #e8e3ee;border-radius:22px;box-shadow:0 10px 30px rgba(45,31,75,.08)}
+    .boot-logo{width:72px;height:72px;margin:0 auto 16px;border-radius:20px;object-fit:cover;background:#f2edff}
+    .boot-title{margin:0;color:#211c28;font-size:19px;font-weight:800}
+    .boot-text{margin:8px 0 18px;color:#756d7d;font-size:13px;line-height:1.5}
+    .boot-link{display:inline-flex;min-height:44px;align-items:center;justify-content:center;padding:0 16px;border-radius:12px;background:#4f46e5;color:#fff;text-decoration:none;font-size:13px;font-weight:800}
+    .boot-error{display:none;color:#b91c1c;font-size:12px;line-height:1.45;margin:0 0 14px}
+    .loaded .boot{display:none}
+    .error .boot-error{display:block}
+  </style>
 </head>
 <body>
-  <main class="app-shell">
-    <section class="welcome-card" aria-labelledby="app-name">
-      <div class="brand-mark">
-        <img id="app-logo" src="./assets/icons/icon-192.svg" alt="Logo PSB Fathan Mubina">
-      </div>
-      <p class="eyebrow">PWA Foundation 32.2.6</p>
-      <h1 id="app-name">PSB Fathan Mubina</h1>
-      <p class="lead">Pusat layanan Penerimaan Santri Baru dalam bentuk aplikasi web yang dapat dipasang di perangkat.</p>
-      <div class="status" id="app-status" data-kind="info" role="status">Menyiapkan aplikasi...</div>
-      <p class="version" id="app-version">PWA Foundation 32.2.6</p>
-    </section>
+  <main class="pwa-root" id="pwaRoot">
+    <div class="boot" id="boot">
+      <section class="boot-card" aria-live="polite">
+        <img class="boot-logo" id="bootLogo" src="./assets/icons/icon-192.svg" alt="PSB Fathan Mubina">
+        <h1 class="boot-title">PSB Fathan Mubina</h1>
+        <p class="boot-text" id="bootText">Membuka aplikasi PSB...</p>
+        <p class="boot-error" id="bootError">Aplikasi PSB belum dapat dibuka dari PWA. Gunakan tombol di bawah untuk membuka aplikasi langsung.</p>
+        <a class="boot-link" id="openApp" href="#" target="_blank" rel="noopener">Buka Aplikasi PSB</a>
+      </section>
+    </div>
+    <iframe
+      class="app-frame"
+      id="appFrame"
+      title="Aplikasi PSB Fathan Mubina"
+      allow="camera; microphone; geolocation; clipboard-read; clipboard-write"
+      referrerpolicy="strict-origin-when-cross-origin"></iframe>
   </main>
   <script src="./config.js"></script>
-  <script src="./api-bridge.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
