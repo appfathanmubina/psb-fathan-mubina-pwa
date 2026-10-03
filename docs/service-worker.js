@@ -1,4 +1,4 @@
-const CACHE_NAME = 'psb-fm-pwa-shell-v32.3.1';
+const CACHE_NAME = 'psb-fm-pwa-shell-v32.3.2';
 const APP_SHELL = [
   './',
   './index.html',
