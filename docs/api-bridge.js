@@ -11,6 +11,8 @@
   let iframe = null;
   let bridgeContentOrigin = '';
   let readyPromise = null;
+  let bridgeReady = false;
+  let bridgeReadyVersion = 'unknown';
   let requestSeq = 0;
   const pending = new Map();
 
@@ -98,6 +100,8 @@
     if (data.type === 'ready') {
       if (!fromBridgeOrigin) return;
       bridgeContentOrigin = event.origin;
+      bridgeReady = true;
+      bridgeReadyVersion = event.detail?.bridgeVersion || data.bridgeVersion || 'unknown';
       window.dispatchEvent(new CustomEvent('psb-bridge-ready', {detail: data}));
       return;
     }
@@ -117,23 +121,38 @@
   });
 
   function waitForReady(timeoutMs = DEFAULT_TIMEOUT_MS) {
-    ensureIframe();
+    if (bridgeReady && iframe && document.documentElement.contains(iframe)) {
+      return Promise.resolve({success:true, bridgeVersion:bridgeReadyVersion});
+    }
     if (readyPromise) return readyPromise;
 
     readyPromise = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        window.removeEventListener('psb-bridge-ready', onReady);
-        readyPromise = null;
-        reject(Object.assign(new Error('API Bridge belum merespons.'), {code: 'BRIDGE_TIMEOUT'}));
-      }, timeoutMs);
-
-      function onReady(event) {
+      let settled = false;
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
         window.removeEventListener('psb-bridge-ready', onReady);
-        resolve({success: true, bridgeVersion: event.detail?.bridgeVersion || 'unknown'});
-      }
+        fn(value);
+      };
+      const onReady = (event) => {
+        finish(resolve, {success:true, bridgeVersion:event.detail?.bridgeVersion || bridgeReadyVersion || 'unknown'});
+      };
+      const timer = setTimeout(() => {
+        readyPromise = null;
+        finish(reject, Object.assign(new Error('API Bridge belum merespons.'), {code:'BRIDGE_TIMEOUT'}));
+      }, timeoutMs);
 
+      // Pasang listener SEBELUM iframe dibuat agar event ready tidak terlewat.
       window.addEventListener('psb-bridge-ready', onReady);
+      try {
+        ensureIframe();
+        if (bridgeReady) finish(resolve, {success:true, bridgeVersion:bridgeReadyVersion});
+      } catch (e) {
+        finish(reject, e);
+      }
+    }).finally(() => {
+      if (bridgeReady) readyPromise = null;
     });
     return readyPromise;
   }
@@ -168,6 +187,8 @@
     iframe = null;
     bridgeContentOrigin = '';
     readyPromise = null;
+    bridgeReady = false;
+    bridgeReadyVersion = 'unknown';
     rejectAll(Object.assign(new Error('API Bridge di-reset.'), {code: 'BRIDGE_RESET'}));
   }
 
