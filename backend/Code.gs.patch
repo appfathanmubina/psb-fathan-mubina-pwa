@@ -1,8 +1,8 @@
 /*
- * STAGE 32.2 — PWA API BRIDGE
+ * STAGE 32.3.5 — PWA API BRIDGE
  * Staged backend patch. Do not deploy to production until integration QA.
  */
-const PSB_PWA_BRIDGE_VERSION = '32.2.0';
+const PSB_PWA_BRIDGE_VERSION = '32.3.5';
 
 const PSB_PWA_BRIDGE_ALLOWED_FUNCTIONS = Object.freeze([
   'getAppInfo','getPublicConfig','getPublicGallery',
