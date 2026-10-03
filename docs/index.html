@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#7c3aed">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PSB FM">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./assets/icons/icon-192.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
   <title>PSB Fathan Mubina</title>
   <style>
 :root{
@@ -2084,6 +2091,14 @@ async function sendChatMessageUI(){
 async function runChatAutomationUI(){showConfirm('Jalankan otomasi chat sekarang?','Sistem akan memeriksa chat yang menunggu balasan, menutup chat yang tidak aktif sesuai konfigurasi, lalu menjalankan cleanup retensi.',async()=>{loading(true,'Menjalankan otomasi chat...');try{const r=await server('runChatAutomationNow',state.token);if(r?.success){showToast(`Otomasi selesai: ${Number(r.reminders||0)} pengingat, ${Number(r.closedThreads||0)} chat ditutup, ${Number(r.cleanup?.deletedThreads||0)} chat lama dibersihkan.`,'success');state.chatThread=null;await loadChatDataUI(false);}else showAlert('Otomasi belum dijalankan',r?.message||'Periksa konfigurasi chat.','warning');}catch(e){showAlert('Otomasi gagal','Terjadi gangguan saat menjalankan otomasi chat.','error')}finally{loading(false)}},'Jalankan');}
 async function cleanupChatRetentionUI(){showConfirm('Bersihkan chat lama?','Hanya percakapan yang sudah ditutup dan melewati masa retensi yang akan dihapus dari database.',async()=>{loading(true,'Membersihkan chat lama...');try{const r=await server('cleanupChatRetention',state.token);if(r?.success){showToast(`Cleanup selesai: ${Number(r.deletedMessages||0)} pesan dan ${Number(r.deletedThreads||0)} percakapan dihapus.`,'success');state.chatThread=null;await loadChatDataUI(false);}else showAlert('Cleanup belum dijalankan',r?.message||'Periksa konfigurasi chat.','warning');}catch(e){showAlert('Cleanup gagal','Terjadi gangguan saat membersihkan chat.','error')}finally{loading(false)}},'Bersihkan');}
 async function closeChatThreadUI(threadId){showConfirm('Tutup percakapan?','Percakapan akan disimpan sampai melewati masa retensi. Wali dapat membuka percakapan baru.',async()=>{loading(true,'Menutup percakapan...');try{const r=await server('closeChatThread',state.token,threadId);if(r?.success){state.chatThread=null;document.body.style.overflow='';showToast(r.message,'success');await loadChatDataUI(false);}else showAlert('Belum ditutup',r?.message||'Percakapan tidak dapat ditutup.','warning');}catch(e){showAlert('Gagal menutup','Terjadi gangguan saat menutup percakapan.','error')}finally{loading(false)}},'Tutup Chat');}
+</script>
+<script>
+(function registerPwaServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(function(){});
+  },{once:true});
+})();
 </script>
 </body>
 </html>
