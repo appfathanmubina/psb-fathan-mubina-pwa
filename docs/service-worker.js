@@ -1,11 +1,10 @@
-const CACHE_NAME = 'psb-fm-pwa-shell-v32.2.6';
+const CACHE_NAME = 'psb-fm-pwa-shell-v32.2.7';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
   './config.js',
   './app.js',
-  './api-bridge.js',
   './manifest.json',
   './assets/icons/icon-192.svg',
   './assets/icons/icon-512.svg'
